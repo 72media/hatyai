@@ -71,10 +71,6 @@
   }
   .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
   .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
-  .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
-  .btn-green.active { background: linear-gradient(135deg, #059669, #047857); }
-  .btn-green.loading { background: linear-gradient(135deg, #94a3b8, #64748b); cursor: wait; pointer-events: none; }
-  .btn-green.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
 
   /* Weather */
   #weather-section { padding: 16px; border-bottom: 1px solid var(--line); background: #fff; }
@@ -227,8 +223,6 @@
 
       <div class="action-bar">
         <button class="btn-action btn-blue" onclick="openWaterView()">💧 สถานการณ์น้ำ คลองอู่ตะเภา</button>
-        <!-- ปุ่มฝน เปลี่ยนสถานะเป็น Loading ได้ -->
-        <button class="btn-action btn-green" id="btn-rain-toggle" onclick="toggleRainLayer()">🌧️ ฝนสะสม 24 ชม. (สงขลา)</button>
       </div>
 
       <div id="weather-section">
@@ -269,12 +263,12 @@
       <label><input type="radio" name="base" value="google" checked> 🛰️ Google Hybrid</label>
       <label><input type="radio" name="base" value="topo"> ⛰️ OpenTopoMap</label>
       <label><input type="radio" name="base" value="dark"> 🌃 แบบมืด (Dark)</label>
+      
       <h4 style="margin-top:12px;">เลเยอร์ซ้อนทับ</h4>
       <label><input type="checkbox" id="layer-radar" checked> เรดาร์น้ำฝน</label>
       <div class="radar-slider-box" id="radar-slider-container">
         <input type="range" id="radar-opacity-slider" min="0" max="1" step="0.05" value="0.7">
       </div>
-      <label><input type="checkbox" id="layer-rain"> ฝนสะสม 24 ชม.</label>
     </div>
   </div>
 
@@ -308,8 +302,6 @@
    1) CONFIG & CONSTANTS
    ========================================================= */
 const API_CAMS = 'https://hatyaicityclimate.org/api/flood/cams';
-// ใช้ Proxy ช่วยดึงข้อมูล ThaiWater ป้องกันปัญหา CORS
-const API_RAIN = 'https://corsproxy.io/?' + encodeURIComponent('https://api-v3.thaiwater.net/api/v1/thaiwater30/public/rain_24h');
 const STALE_MINUTES = 120;
 const LAT = 7.0084; const LON = 100.4767;
 
@@ -415,8 +407,6 @@ const radarOverlay=L.imageOverlay(radarUrl,radarBounds,{opacity:0.7,alt:'Radar'}
 map.fitBounds(radarBounds,{padding:[0,0]});
 setTimeout(()=>{map.invalidateSize();map.fitBounds(radarBounds,{padding:[0,0]});},500);
 
-const rainLayer=L.layerGroup(); let rainDataLoaded=false; let rainVisible=false;
-
 // Custom Layer Menu Logic
 const layerBtn = document.getElementById('layer-btn');
 const layerPanel = document.getElementById('layer-panel');
@@ -445,15 +435,6 @@ radarChk.addEventListener('change', (e) => {
     else { map.removeLayer(radarOverlay); sliderContainer.classList.add('disabled'); }
 });
 opacitySlider.addEventListener('input', (e) => radarOverlay.setOpacity(parseFloat(e.target.value)));
-
-// Rain Listener
-const rainChk = document.getElementById('layer-rain');
-rainChk.addEventListener('change', (e) => {
-    if (e.target.checked) {
-        if (rainDataLoaded) { map.addLayer(rainLayer); rainVisible = true; updateRainBtn(true); }
-        else { alert('ข้อมูลฝนกำลังโหลด หรือโหลดไม่สำเร็จ กรุณาลองใหม่ภายหลัง'); e.target.checked = false; }
-    } else { map.removeLayer(rainLayer); rainVisible = false; updateRainBtn(false); }
-});
 
 L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 const cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,disableClusteringAtZoom:16}).addTo(map);
@@ -487,89 +468,7 @@ function popupHtml(c){
 }
 
 /* =========================================================
-   7) RAIN DATA (ThaiWater API) - FILTER SONGKHLA ONLY
-   ========================================================= */
-function getRainColor(r){ if(r<=10)return '#a7f3d0'; if(r<=35)return '#6ee7b7'; if(r<=90)return '#fde047'; if(r<=150)return '#fb923c'; return '#ef4444'; }
-function getRainRadius(r){ if(r<=10)return 6; if(r<=35)return 8; if(r<=90)return 10; if(r<=150)return 12; return 14; }
-
-async function fetchRainData(){
-    const btn = document.getElementById('btn-rain-toggle');
-    // แสดงสถานะกำลังโหลดที่ปุ่ม
-    btn.classList.add('loading');
-    btn.innerHTML = '⏳ กำลังโหลดข้อมูล...';
-
-    try{
-        const res=await fetch(API_RAIN); if(!res.ok) throw new Error(res.status);
-        const json=await res.json(); const items=json.data||json.items||[];
-        // Songkhla Bounding Box
-        const songkhlaItems=items.filter(item=>{
-            const lat=parseFloat(item.station?.tele_station_lat);
-            const lon=parseFloat(item.station?.tele_station_long);
-            return (lat>=6.40&&lat<=7.80&&lon>=99.90&&lon<=101.15);
-        });
-        rainLayer.clearLayers();
-        songkhlaItems.forEach(item=>{
-            const st=item.station; const lat=parseFloat(st?.tele_station_lat); const lon=parseFloat(st?.tele_station_long);
-            if(isNaN(lat)||isNaN(lon)) return;
-            const rain=parseFloat(item.rain_24h??item.rain??0);
-            const basinName=item.basin?.basin_name?.th||'ไม่ระบุลุ่มน้ำ';
-            const stationName=st?.tele_station_name?.th||'ไม่ระบุชื่อ';
-            const circle=L.circleMarker([lat,lon],{radius:getRainRadius(rain),fillColor:getRainColor(rain),color:'#fff',weight:2,opacity:1,fillOpacity:0.8});
-            circle.bindPopup(`<div style="font-weight:700;font-size:15px;margin-bottom:8px;">📍 ${esc(stationName)}</div><div style="font-size:28px;font-weight:700;color:#10b981;line-height:1;margin-bottom:4px;">${rain.toFixed(1)} <span style="font-size:12px;color:var(--muted);">มม.</span></div><div style="font-size:12px;color:var(--muted);margin-top:8px;background:#f1f5f9;padding:4px 8px;border-radius:6px;display:inline-block;">🏞️ ${esc(basinName)}</div><div style="font-size:12px;color:var(--muted);margin-top:8px;">🆔 ${esc(st?.tele_station_oldcode||'-')}</div>`);
-            rainLayer.addLayer(circle);
-        });
-        rainDataLoaded=true; 
-        console.log('Rain loaded:',songkhlaItems.length,'stations in Songkhla');
-        
-        // โหลดเสร็จ เปลี่ยนสถานะปุ่มเป็นพร้อมใช้งาน
-        btn.classList.remove('loading');
-        updateRainBtn(rainVisible);
-
-    }catch(e){ 
-        console.warn('Rain API Error:',e.message); 
-        // ถ้าโหลดพัง ให้ขึ้นสีแดงและแจ้งเตือน
-        btn.classList.remove('loading');
-        btn.classList.add('error');
-        btn.innerHTML = '❌ โหลดข้อมูลฝนไม่สำเร็จ';
-        setTimeout(() => {
-            btn.classList.remove('error');
-            btn.innerHTML = '🌧️ ฝนสะสม 24 ชม. (สงขลา)';
-        }, 3000);
-    }
-}
-fetchRainData();
-
-function updateRainBtn(isVisible) {
-    const btn = document.getElementById('btn-rain-toggle');
-    if (isVisible) {
-        btn.classList.add('active');
-        btn.innerHTML = '🌧️ ซ่อนฝนสะสม 24 ชม.';
-    } else {
-        btn.classList.remove('active');
-        btn.innerHTML = '🌧️ ฝนสะสม 24 ชม. (สงขลา)';
-    }
-}
-
-function toggleRainLayer(){
-    const chk = document.getElementById('layer-rain');
-    // ถ้าข้อมูลยังไม่เสร็จ ห้ามกด
-    if(!rainDataLoaded) return; 
-    
-    if(rainVisible){ 
-        map.removeLayer(rainLayer); 
-        rainVisible=false; 
-        updateRainBtn(false);
-        if(chk) chk.checked = false;
-    } else { 
-        map.addLayer(rainLayer); 
-        rainVisible=true; 
-        updateRainBtn(true);
-        if(chk) chk.checked = true;
-    }
-}
-
-/* =========================================================
-   8) CAMERAS RENDER & LIST
+   7) CAMERAS RENDER & LIST
    ========================================================= */
 let ALL=[]; let currentPage=1; const itemsPerPage=8;
 
@@ -611,7 +510,7 @@ function focusCam(c){
 }
 
 /* =========================================================
-   9) LOAD CAMS
+   8) LOAD CAMS
    ========================================================= */
 async function loadCams(){
     const btn=document.getElementById('refresh'); btn.disabled=true; btn.textContent='⏳ โหลด';
@@ -626,7 +525,7 @@ async function loadCams(){
 }
 
 /* =========================================================
-   10) OVERLAYS & CLOCK
+   9) OVERLAYS & CLOCK
    ========================================================= */
 function openWaterView(){ document.getElementById('water-overlay').classList.add('active'); }
 function closeWaterView(){ document.getElementById('water-overlay').classList.remove('active'); }
@@ -660,7 +559,7 @@ function updateClock(){
 }
 
 /* =========================================================
-   11) INIT & EVENTS
+   10) INIT & EVENTS
    ========================================================= */
 const sidebar=document.getElementById('sidebar'); const toggleBtn=document.getElementById('sidebar-toggle');
 toggleBtn.addEventListener('click',()=>{
