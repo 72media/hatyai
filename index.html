@@ -161,7 +161,8 @@
   /* Popup */
   .leaflet-popup-content { margin: 12px; width: 280px !important; font-family: 'Inter', 'Sarabun', sans-serif; }
   .pop-title { font-weight: 700; font-size: 15px; margin-bottom: 10px; }
-  .pop-img { width: 100%; border-radius: 8px; display: block; background: #e2e8f0; cursor: pointer; min-height: 160px; object-fit: cover; }
+  .pop-img { width: 100%; border-radius: 8px; display: block; background: #e2e8f0; cursor: zoom-in; min-height: 160px; object-fit: cover; transition: opacity 0.2s; }
+  .pop-img:hover { opacity: 0.9; }
   .pop-coord { font-size: 12px; color: var(--muted); margin-top: 8px; }
   .pop-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
   .badge { color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
@@ -171,9 +172,8 @@
   .pop-btn { display: flex; align-items: center; justify-content: center; flex: 1; padding: 10px; border-radius: 8px; background: var(--brand); color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; }
   .pop-btn:hover { background: var(--brand-dark); }
   .pop-btn.live-btn { background: #dc2626; } .pop-btn.live-btn:hover { background: #b91c1c; }
-  .pop-btn.static-btn { background: #64748b; } .pop-btn.static-btn:hover { background: #475569; }
 
-  /* Overlays */
+  /* Overlays (Water & Multiview) */
   .full-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); z-index: 2000; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
   .full-overlay.active { opacity: 1; pointer-events: auto; }
   .overlay-header { background: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
@@ -193,6 +193,28 @@
   .page-btn { padding: 8px 16px; border: 1px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .page-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
   .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---------- Lightbox (Image Modal) ---------- */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+    align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .lightbox.active { display: flex; opacity: 1; }
+  .lightbox img {
+    max-width: 95vw; max-height: 90vh; border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    object-fit: contain;
+  }
+  .lightbox-close {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255, 255, 255, 0.2); border: none; color: white;
+    width: 44px; height: 44px; border-radius: 50%; font-size: 24px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .lightbox-close:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.1); }
 
   /* ---------- Mobile Fixes ---------- */
   @media (max-width: 820px) {
@@ -263,7 +285,6 @@
       <label><input type="radio" name="base" value="google" checked> 🛰️ Google Hybrid</label>
       <label><input type="radio" name="base" value="topo"> ⛰️ OpenTopoMap</label>
       <label><input type="radio" name="base" value="dark"> 🌃 แบบมืด (Dark)</label>
-      
       <h4 style="margin-top:12px;">เลเยอร์ซ้อนทับ</h4>
       <label><input type="checkbox" id="layer-radar" checked> เรดาร์น้ำฝน</label>
       <div class="radar-slider-box" id="radar-slider-container">
@@ -291,6 +312,12 @@
     </div>
     <div class="grid-container" id="multiview-grid"></div>
     <div class="pagination" id="multiview-pagination"></div>
+  </div>
+
+  <!-- Lightbox for Full Image -->
+  <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox(event)">✕</button>
+    <img id="lightbox-img" src="" alt="Full view" onclick="event.stopPropagation()">
   </div>
 </div>
 
@@ -440,7 +467,7 @@ L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 const cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,disableClusteringAtZoom:16}).addTo(map);
 
 /* =========================================================
-   5) HELPERS
+   5) HELPERS & LIGHTBOX
    ========================================================= */
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const ICONS={};
@@ -449,22 +476,51 @@ function parseDate(s){ if(!s) return null; const d=new Date(String(s).replace(' 
 function statusOf(c){ if(c.statusMsg&&c.statusMsg.trim()) return {color:'#dc2626',label:c.statusMsg.trim()}; const d=parseDate(c.atDate); if(d&&(Date.now()-d.getTime())/60000>STALE_MINUTES) return {color:'#9ca3af',label:'ข้อมูลไม่อัปเดต'}; return {color:'#16a34a',label:'ปกติ'}; }
 function imgUrl(c){ return c.photo?c.photo+'?t='+encodeURIComponent(c.atDate||Date.now()):''; }
 
+// Lightbox Functions
+function openLightbox(url) {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    img.src = url;
+    lightbox.classList.add('active');
+}
+function closeLightbox(e) {
+    if(e) e.stopPropagation(); // ป้องกันการคลิกทะลุ
+    const lightbox = document.getElementById('lightbox');
+    lightbox.classList.remove('active');
+    document.getElementById('lightbox-img').src = ''; // เคลียร์รูปเพื่อประหยัดแรม
+}
+
 /* =========================================================
    6) POPUP
    ========================================================= */
 function popupHtml(c){
-    const st=statusOf(c); const isLive=(c.cameraId===1||c.code==='S8');
+    const st=statusOf(c); 
+    const isLive=(c.cameraId===1||c.code==='S8');
     const liveUrl='http://live:Live2025!@ta200304.dyndns.info:5001/axis-cgi/mjpg/video.cgi';
-    let btn='';
-    if(isLive&&c.photo) btn=`<div class="pop-btn-wrap"><a class="pop-btn static-btn" href="${esc(c.photo)}" target="_blank">ภาพนิ่ง ↗</a><a class="pop-btn live-btn" href="${liveUrl}" target="_blank" title="หากภาพไม่ขึ้น ให้เปิดในแท็บใหม่">🔴 ดูภาพสด (Live)</a></div>`;
-    else if(c.photo) btn=`<div class="pop-btn-wrap"><a class="pop-btn" href="${esc(c.photo)}" target="_blank">เปิดภาพเต็ม ↗</a></div>`;
-    return `<div class="pop"><div class="pop-title">${esc(c.title)}</div>
-    ${c.photo?`<a href="${esc(c.photo)}" target="_blank" id="img-link-${c.cameraId}"><img class="pop-img" id="pop-img-${c.cameraId}" src="${esc(imgUrl(c))}" onerror="this.style.display='none'"></a>`:''}
-    ${c.lat&&c.lng?`<div class="pop-coord">📍 ${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</div>`:''}
-    <div class="pop-row"><span class="badge" style="background:${st.color}">${esc(st.label)}</span><span class="code">${esc(c.code)}</span></div>
-    <div class="pop-time">🕒 ${esc(c.date)} ${esc(c.time)} น.</div>
-    ${c.sponsorName?`<div style="font-size:12px;color:var(--muted);margin-top:4px;">📷 ${esc(c.sponsorName)}</div>`:''}
-    ${btn}</div>`;
+    
+    let btnHtml = '';
+    // เอาเฉพาะปุ่ม Live ออก/คงไว้ตามเงื่อนไข ตัดปุ่ม "เปิดภาพเต็ม" ออกแล้ว
+    if(isLive && c.photo) {
+        btnHtml = `<div class="pop-btn-wrap" style="margin-top:12px;"><a class="pop-btn live-btn" href="${liveUrl}" target="_blank" title="หากภาพไม่ขึ้น ให้เปิดในแท็บใหม่">🔴 ดูภาพสด (Live)</a></div>`;
+    }
+
+    return `<div class="pop">
+        <div class="pop-title">${esc(c.title)}</div>
+        
+        ${c.photo ? `
+            <img class="pop-img" src="${esc(imgUrl(c))}" 
+                 onclick="openLightbox('${esc(c.photo)}')" 
+                 onerror="this.style.display='none'">
+        ` : ''}
+        
+        ${c.lat&&c.lng?`<div class="pop-coord">📍 ${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</div>`:''}
+        
+        <div class="pop-row"><span class="badge" style="background:${st.color}">${esc(st.label)}</span><span class="code">${esc(c.code)}</span></div>
+        <div class="pop-time">🕒 ${esc(c.date)} ${esc(c.time)} น.</div>
+        ${c.sponsorName?`<div style="font-size:12px;color:var(--muted);margin-top:4px;">📷 ${esc(c.sponsorName)}</div>`:''}
+        
+        ${btnHtml}
+    </div>`;
 }
 
 /* =========================================================
@@ -479,7 +535,11 @@ function render(items){
     ALL.forEach(c=>{
         if(c.lat===null||c.lng===null) return;
         c.marker=L.marker([c.lat,c.lng],{icon:pinIcon(statusOf(c).color),title:c.title,riseOnHover:true}).bindPopup(popupHtml(c),{maxWidth:320});
-        c.marker.on('popupopen',e=>{ const img=e.popup.getElement()?.querySelector('.pop-img'); if(img&&c.photo&&!img.src.includes('video.cgi')) img.src=imgUrl(c); });
+        // รีเฟรชรูปใหม่เมื่อเปิด Popup
+        c.marker.on('popupopen',e=>{ 
+            const img=e.popup.getElement()?.querySelector('.pop-img'); 
+            if(img&&c.photo&&!img.src.includes('video.cgi')) img.src=imgUrl(c); 
+        });
     });
     applyFilter(document.getElementById('q').value);
 }
