@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>กล้อง CCTV หาดใหญ่ · ศูนย์ข้อมูลน้ำและอากาศ</title>
+<title>ศูนย์ข้อมูลน้ำหาดใหญ่ · CCTV & Weather</title>
 
 <!-- Leaflet & MarkerCluster CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -14,282 +14,166 @@
 
 <style>
   :root {
-    --line: #e2e8f0;
-    --txt: #1e293b;
-    --muted: #64748b;
-    --brand: #0ea5e9;
-    --brand-dark: #0284c7;
-    --bg-glass: rgba(255, 255, 255, 0.95);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025);
+    --line: #e2e8f0; --txt: #1e293b; --muted: #64748b;
+    --brand: #0ea5e9; --brand-dark: #0284c7;
+    --bg-glass: rgba(255, 255, 255, 0.96);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05);
   }
   
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    font-family: 'Inter', 'Sarabun', system-ui, sans-serif;
-    color: var(--txt);
-    background: #f1f5f9;
-    overflow: hidden;
+  
+  /* แก้ไข: ใช้ 100dvh เพื่อรองรับหน้าจอมือถือ */
+  html, body { height: 100dvh; margin: 0; }
+  
+  body { 
+    font-family: 'Inter', 'Sarabun', sans-serif; 
+    color: var(--txt); 
+    background: #f1f5f9; 
+    overflow: hidden; 
   }
   
-  #app { display: flex; height: 100%; position: relative; }
+  /* แก้ไข: ใช้ 100dvh */
+  #app { display: flex; height: 100dvh; position: relative; overflow: hidden; }
 
-  /* =========================================
-     Sidebar (Modern Glassmorphism)
-     ========================================= */
+  /* ---------- Sidebar ---------- */
   #sidebar {
-    width: 380px;
-    flex: 0 0 380px;
-    background: var(--bg-glass);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
+    width: 380px; flex: 0 0 380px; background: var(--bg-glass);
+    backdrop-filter: blur(12px); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; z-index: 1000;
     transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-lg);
   }
   #sidebar.collapsed { margin-left: -380px; }
 
-  /* Header */
   #sidebar header {
-    padding: 16px 20px;
-    background: linear-gradient(135deg, var(--brand-dark), var(--brand));
-    color: #fff;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 16px 20px; background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+    color: #fff; display: flex; align-items: flex-start; gap: 12px;
   }
   .header-text { flex: 1; }
-  #sidebar header h1 { font-size: 18px; margin: 0 0 4px 0; font-weight: 700; letter-spacing: -0.5px; }
+  #sidebar header h1 { font-size: 18px; margin: 0 0 4px 0; font-weight: 700; }
   #clock { font-size: 13px; font-weight: 500; opacity: 0.9; }
-  
   #refresh {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.3);
-    color: #fff;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; border-radius: 8px; padding: 6px 12px; font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: 0.2s;
   }
   #refresh:hover { background: rgba(255,255,255,0.3); }
 
   /* Action Bar */
-  .action-bar {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--line);
-    background: rgba(255,255,255,0.5);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .btn-water {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 10px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
+  .action-bar { padding: 12px 16px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.5); display: flex; flex-direction: column; gap: 8px; }
+  .btn-action {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 10px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-md);
     transition: transform 0.2s, box-shadow 0.2s;
   }
-  .btn-water:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
-  
-  .btn-rain-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 10px;
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .btn-rain-toggle:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
-  .btn-rain-toggle.active { background: linear-gradient(135deg, #059669, #047857); }
+  .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+  .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+  .btn-green.active { background: linear-gradient(135deg, #059669, #047857); }
 
-  /* Weather Section */
-  #weather-section {
-    padding: 16px;
-    border-bottom: 1px solid var(--line);
-    background: #fff;
-  }
-  .current-weather {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-    background: linear-gradient(to right, #f8fafc, #f1f5f9);
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--line);
-  }
-  .current-weather .cw-icon { font-size: 36px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
-  .current-weather .cw-temp { font-size: 24px; font-weight: 700; color: var(--brand-dark); line-height: 1; letter-spacing: -1px; }
-  .current-weather .cw-desc { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 500; }
-  
-  .forecast-wrapper {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    scrollbar-width: thin;
-  }
+  /* Weather */
+  #weather-section { padding: 16px; border-bottom: 1px solid var(--line); background: #fff; }
+  .current-weather { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--line); }
+  .cw-icon { font-size: 36px; }
+  .cw-temp { font-size: 24px; font-weight: 700; color: var(--brand-dark); line-height: 1; }
+  .cw-desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .forecast-wrapper { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
   .forecast-wrapper::-webkit-scrollbar { height: 6px; }
   .forecast-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  
-  .forecast-card {
-    min-width: 80px;
-    background: #fff;
-    border-radius: 12px;
-    padding: 10px 8px;
-    text-align: center;
-    border: 1px solid var(--line);
-    flex-shrink: 0;
-    box-shadow: var(--shadow-sm);
-  }
-  .forecast-card .date { font-size: 12px; font-weight: 600; color: var(--txt); margin-bottom: 6px; }
+  .forecast-card { min-width: 80px; background: #fff; border-radius: 12px; padding: 10px 8px; text-align: center; border: 1px solid var(--line); flex-shrink: 0; box-shadow: var(--shadow-sm); }
+  .forecast-card .date { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
   .forecast-card .icon { font-size: 24px; margin-bottom: 6px; }
   .forecast-card .temp { font-size: 12px; font-weight: 600; }
-  .forecast-card .temp-max { color: #ef4444; }
-  .forecast-card .temp-min { color: #3b82f6; }
+  .temp-max { color: #ef4444; } .temp-min { color: #3b82f6; }
   .forecast-card .rain { font-size: 11px; color: var(--brand); margin-top: 6px; font-weight: 500; }
 
-  /* Toolbar & Search */
+  /* Toolbar */
   .toolbar { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; background: #fff; }
   .search-box { position: relative; flex: 1; }
   .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); }
-  #q { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; outline: none; transition: all 0.2s; background: #f8fafc; }
+  #q { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; outline: none; background: #f8fafc; transition: 0.2s; }
   #q:focus { border-color: var(--brand); background: #fff; box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
-  
-  #count { font-size: 13px; font-weight: 600; color: var(--brand-dark); white-space: nowrap; cursor: pointer; padding: 6px 12px; background: #e0f2fe; border-radius: 20px; transition: background 0.2s; }
+  #count { font-size: 13px; font-weight: 600; color: var(--brand-dark); white-space: nowrap; cursor: pointer; padding: 6px 12px; background: #e0f2fe; border-radius: 20px; }
   #count:hover { background: #bae6fd; }
 
-  /* Camera List */
+  /* List */
   #list { list-style: none; margin: 0; padding: 12px; overflow-y: auto; flex: 1; background: #f8fafc; }
-  .cam-item { display: flex; gap: 12px; padding: 10px; border-radius: 12px; cursor: pointer; align-items: center; background: #fff; border: 1px solid var(--line); margin-bottom: 8px; box-shadow: var(--shadow-sm); transition: all 0.2s; }
-  .cam-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+  .cam-item { display: flex; gap: 12px; padding: 10px; border-radius: 12px; cursor: pointer; align-items: center; background: #fff; border: 1px solid var(--line); margin-bottom: 8px; box-shadow: var(--shadow-sm); transition: 0.2s; }
+  .cam-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
   .cam-item .thumb { width: 72px; height: 52px; object-fit: cover; border-radius: 8px; background: #e2e8f0; flex: 0 0 72px; }
   .cam-item .meta { min-width: 0; flex: 1; }
-  .cam-item .name { font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--txt); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .cam-item .sub { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 500; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: 0 0 8px; }
-  .empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .cam-item .name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cam-item .sub { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .empty { padding: 32px; text-align: center; color: var(--muted); }
 
-  /* Legend */
-  .legend { padding: 12px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; background: #fff; }
-  .legend span { display: flex; align-items: center; gap: 6px; font-weight: 500; }
-
-  /* Toggle Button */
-  #sidebar-toggle {
-    position: absolute; top: 16px; left: 392px; z-index: 1100;
-    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line);
-    background: #fff; color: var(--txt); box-shadow: var(--shadow-md);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 16px; font-weight: bold; transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  #sidebar-toggle:hover { background: #f1f5f9; }
+  /* Toggle */
+  #sidebar-toggle { position: absolute; top: 16px; left: 392px; z-index: 1100; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--txt); box-shadow: var(--shadow-md); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; transition: left 0.35s; }
   #sidebar-toggle.collapsed { left: 16px; }
 
   /* Map */
   #map { flex: 1; min-width: 0; z-index: 1; }
   .leaflet-bottom.leaflet-right .leaflet-control-zoom { margin-bottom: 40px; border: none; box-shadow: var(--shadow-md); }
   .leaflet-bottom.leaflet-right .leaflet-control-zoom a { border-radius: 8px; color: var(--txt); background: #fff; border: none; margin-bottom: 4px; font-weight: bold; }
-  .leaflet-bottom.leaflet-right .leaflet-control-zoom a:hover { background: #f1f5f9; }
-
-  /* Opacity Slider */
-  .leaflet-control.opacity-control {
-    background: #fff; padding: 8px 12px; border-radius: 10px;
-    box-shadow: var(--shadow-md); display: flex; align-items: center;
-    gap: 10px; font-family: inherit; font-size: 13px; font-weight: 600; margin-bottom: 10px;
-    border: 1px solid var(--line);
-  }
-  .leaflet-control.opacity-control input[type="range"] { cursor: pointer; accent-color: var(--brand); width: 100px; }
-
-  /* Map Pins */
-  .cam-pin { background: none; border: none; }
-  .pin { width: 18px; height: 18px; border-radius: 50%; background: var(--c, #16a34a); border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.35); }
 
   /* Popup */
-  .leaflet-popup-content { margin: 12px; width: 280px !important; font-size: 13px; font-family: 'Inter', 'Sarabun', sans-serif; }
-  .pop-title { font-weight: 700; font-size: 15px; line-height: 1.35; margin-bottom: 10px; color: var(--txt); }
+  .leaflet-popup-content { margin: 12px; width: 280px !important; font-family: 'Inter', 'Sarabun', sans-serif; }
+  .pop-title { font-weight: 700; font-size: 15px; margin-bottom: 10px; }
   .pop-img { width: 100%; border-radius: 8px; display: block; background: #e2e8f0; cursor: pointer; min-height: 160px; object-fit: cover; }
-  .pop-coord { font-size: 12px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+  .pop-coord { font-size: 12px; color: var(--muted); margin-top: 8px; }
   .pop-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
   .badge { color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
   .code { font-size: 12px; color: var(--muted); font-weight: 600; }
-  .pop-time { font-size: 13px; color: #374151; margin-top: 8px; font-weight: 500; }
-  .pop-sp { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  
+  .pop-time { font-size: 13px; color: #374151; margin-top: 8px; }
   .pop-btn-wrap { display: flex; gap: 8px; margin-top: 12px; }
-  .pop-btn { display: flex; align-items: center; justify-content: center; flex: 1; padding: 10px; border-radius: 8px; background: var(--brand); color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; transition: background 0.2s; border: none; cursor: pointer; }
+  .pop-btn { display: flex; align-items: center; justify-content: center; flex: 1; padding: 10px; border-radius: 8px; background: var(--brand); color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; }
   .pop-btn:hover { background: var(--brand-dark); }
-  .pop-btn.live-btn { background: #dc2626; }
-  .pop-btn.live-btn:hover { background: #b91c1c; }
-  .pop-btn.static-btn { background: #64748b; }
-  .pop-btn.static-btn:hover { background: #475569; }
-
-  /* Rain Popup Specific */
-  .rain-pop-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; color: var(--txt); }
-  .rain-pop-value { font-size: 28px; font-weight: 700; color: #10b981; line-height: 1; margin-bottom: 4px; }
-  .rain-pop-unit { font-size: 12px; color: var(--muted); font-weight: 500; }
-  .rain-pop-basin { font-size: 12px; color: var(--muted); margin-top: 8px; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+  .pop-btn.live-btn { background: #dc2626; } .pop-btn.live-btn:hover { background: #b91c1c; }
+  .pop-btn.static-btn { background: #64748b; } .pop-btn.static-btn:hover { background: #475569; }
 
   /* Overlays */
-  .full-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); z-index: 2000; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  .full-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); z-index: 2000; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
   .full-overlay.active { opacity: 1; pointer-events: auto; }
-  
-  .overlay-header { background: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-md); }
-  .overlay-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--txt); }
-  .btn-close { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; font-weight: bold; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-  .btn-close:hover { background: #e2e8f0; color: var(--txt); }
-
-  .overlay-content { flex: 1; background: #fff; position: relative; overflow: hidden; }
+  .overlay-header { background: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+  .overlay-header h2 { margin: 0; font-size: 18px; font-weight: 700; }
+  .btn-close { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; font-weight: bold; color: var(--muted); cursor: pointer; }
+  .overlay-content { flex: 1; background: #fff; position: relative; }
   .overlay-content iframe { width: 100%; height: 100%; border: none; display: block; }
 
-  /* Multiview Grid */
-  .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; padding: 20px; height: calc(100% - 80px); background: #0f172a; }
+  .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; padding: 20px; height: calc(100% - 80px); background: #0f172a; overflow-y: auto; }
   .grid-item { background: #1e293b; border-radius: 12px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid #334155; transition: transform 0.2s; }
   .grid-item:hover { transform: scale(1.02); border-color: var(--brand); }
   .grid-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
   .grid-item .grid-info { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 16px 12px 10px; color: #fff; }
-  .grid-item .g-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .grid-item .g-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .grid-item .g-code { font-size: 12px; opacity: 0.8; display: flex; align-items: center; gap: 6px; }
-
-  /* Pagination */
   .pagination { height: 80px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border-top: 1px solid var(--line); }
-  .page-btn { padding: 8px 16px; border: 1px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--txt); transition: 0.2s; }
-  .page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: #cbd5e1; }
+  .page-btn { padding: 8px 16px; border: 1px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .page-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
   .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Mobile */
+  /* ---------- Mobile Fixes ---------- */
   @media (max-width: 820px) {
-    #sidebar { position: absolute; inset: 0 auto 0 0; width: 88%; max-width: 380px; transform: translateX(-102%); box-shadow: 4px 0 24px rgba(0,0,0,0.25); margin-left: 0; }
+    /* กำหนดความสูง Sidebar ให้พอดีกับจอจริง */
+    #sidebar { 
+      position: absolute; inset: 0 auto 0 0; width: 88%; max-width: 380px; 
+      height: 100dvh; /* สำคัญมากสำหรับมือถือ */
+      transform: translateX(-102%); box-shadow: 4px 0 24px rgba(0,0,0,0.25); margin-left: 0; 
+    }
     #sidebar.collapsed { transform: translateX(-102%); }
     #sidebar.open { transform: none; }
     #sidebar-toggle { left: 16px !important; }
+    
+    /* เพิ่มการเลื่อนแบบ Touch และเว้นที่ให้ป้าย Netlify */
+    #list { 
+      overflow-y: auto; 
+      -webkit-overflow-scrolling: touch; /* ทำให้ Scroll บน iOS ลื่นขึ้น */
+      padding-bottom: 90px; /* ดันรายการขึ้นไปไม่ให้ป้าย Netlify บัง */
+    }
+    
     .grid-container { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); padding: 10px; gap: 8px; }
   }
 </style>
@@ -309,36 +193,29 @@
     </header>
 
     <div class="action-bar">
-      <button class="btn-water" onclick="openWaterView()">
-        💧 สถานการณ์น้ำ คลองอู่ตะเภา
-      </button>
-      <button class="btn-rain-toggle" id="btn-rain-toggle" onclick="toggleRainLayer()">
-        🌧️ ฝนสะสม 24 ชม. (สงขลา)
-      </button>
+      <button class="btn-action btn-blue" onclick="openWaterView()">💧 สถานการณ์น้ำ คลองอู่ตะเภา</button>
+      <button class="btn-action btn-green" id="btn-rain-toggle" onclick="toggleRainLayer()">🌧️ ฝนสะสม 24 ชม. (สงขลา)</button>
     </div>
 
     <div id="weather-section">
       <div id="current-weather-container" class="current-weather">
         <div class="cw-icon">⏳</div>
-        <div>
-          <div class="cw-temp">--°C</div>
-          <div class="cw-desc">กำลังโหลดข้อมูล...</div>
-        </div>
+        <div><div class="cw-temp">--°C</div><div class="cw-desc">กำลังโหลด...</div></div>
       </div>
       <div id="forecast-wrapper" class="forecast-wrapper"></div>
     </div>
 
     <div class="toolbar">
       <div class="search-box">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         <input id="q" type="search" placeholder="ค้นหาชื่อจุด / รหัสกล้อง...">
       </div>
-      <span id="count" onclick="openMultiview()" title="คลิกเพื่อดูภาพรวมทุกกล้อง">–</span>
+      <span id="count" onclick="openMultiview()" title="ดูภาพรวมทุกกล้อง">–</span>
     </div>
 
     <ul id="list"></ul>
 
-    <div class="legend">
+    <div class="legend" style="padding:12px; font-size:12px; color:var(--muted); display:flex; gap:16px; background:#fff; border-top:1px solid var(--line); flex-wrap: wrap;">
       <span><i class="dot" style="background:#16a34a"></i> ปกติ</span>
       <span><i class="dot" style="background:#dc2626"></i> ไฟฟ้าขัดข้อง</span>
       <span><i class="dot" style="background:#9ca3af"></i> ข้อมูลเก่า</span>
@@ -367,7 +244,6 @@
     <div class="grid-container" id="multiview-grid"></div>
     <div class="pagination" id="multiview-pagination"></div>
   </div>
-
 </div>
 
 <!-- Leaflet & MarkerCluster JS -->
@@ -376,95 +252,53 @@
 
 <script>
 /* =========================================================
-   1) ตั้งค่าพื้นฐาน
+   1) CONFIG & CONSTANTS
    ========================================================= */
 const API_CAMS = 'https://hatyaicityclimate.org/api/flood/cams';
 const API_RAIN = 'https://api-v3.thaiwater.net/api/v1/thaiwater30/public/rain_24h';
 const STALE_MINUTES = 120;
-const LAT = 7.0084;
-const LON = 100.4767;
+const LAT = 7.0084; const LON = 100.4767;
 
 /* =========================================================
-   2) ระบบพยากรณ์อากาศ (Open-Meteo)
+   2) WEATHER (Open-Meteo)
    ========================================================= */
 const wmoWeatherMap = {
-    0: { text: "ฟ้าแจ่มใส", icon: "☀️" }, 1: { text: "ฟ้าโปร่ง", icon: "🌤️" },
-    2: { text: "เมฆบางส่วน", icon: "⛅" }, 3: { text: "เมฆครึ้ม", icon: "☁️" },
-    45: { text: "หมอกหนา", icon: "🌫️" }, 48: { text: "หมอกน้ำค้างแข็ง", icon: "🌫️" },
-    51: { text: "ฝนปรอยๆ เบาๆ", icon: "🌧️" }, 53: { text: "ฝนปรอยๆ ปานกลาง", icon: "🌧️" },
-    55: { text: "ฝนปรอยๆ ตกหนัก", icon: "🌧️" }, 61: { text: "ฝนตกเบา", icon: "🌧️" },
-    63: { text: "ฝนตกปานกลาง", icon: "🌧️" }, 65: { text: "ฝนตกหนัก", icon: "🌧️" },
-    80: { text: "ฝนซู่ตกเบา", icon: "🌦️" }, 81: { text: "ฝนซู่ตกปานกลาง", icon: "🌦️" },
-    82: { text: "ฝนซู่ตกหนักมาก", icon: "⛈️" }, 95: { text: "พายุฝนฟ้าคะนอง", icon: "⛈️" },
-    96: { text: "พายุฝนและลูกเห็บตก", icon: "⛈️" }, 99: { text: "พายุฝนฟ้าคะนองรุนแรง", icon: "⛈️" }
+    0:{t:"ฟ้าแจ่มใส",i:"☀️"},1:{t:"ฟ้าโปร่ง",i:"🌤️"},2:{t:"เมฆบางส่วน",i:"⛅"},3:{t:"เมฆครึ้ม",i:"☁️"},
+    45:{t:"หมอกหนา",i:"🌫️"},48:{t:"หมอกน้ำค้างแข็ง",i:"🌫️"},51:{t:"ฝนปรอยๆ เบาๆ",i:"🌧️"},
+    53:{t:"ฝนปรอยๆ ปานกลาง",i:"🌧️"},55:{t:"ฝนปรอยๆ ตกหนัก",i:"🌧️"},61:{t:"ฝนตกเบา",i:"🌧️"},
+    63:{t:"ฝนตกปานกลาง",i:"🌧️"},65:{t:"ฝนตกหนัก",i:"🌧️"},80:{t:"ฝนซู่ตกเบา",i:"🌦️"},
+    81:{t:"ฝนซู่ตกปานกลาง",i:"🌦️"},82:{t:"ฝนซู่ตกหนักมาก",i:"⛈️"},95:{t:"พายุฝนฟ้าคะนอง",i:"⛈️"},
+    96:{t:"พายุฝนและลูกเห็บตก",i:"⛈️"},99:{t:"พายุฝนฟ้าคะนองรุนแรง",i:"⛈️"}
 };
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+function formatDate(d){ return new Date(d).toLocaleDateString('th-TH',{day:'numeric',month:'short'}); }
+async function fetchWeather(){
+    try{
+        const url=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&daily=weather_code,temperature_2m_max,temperature_2m_min,rain_sum&timezone=Asia%2FBangkok&forecast_days=7`;
+        const res=await fetch(url); if(!res.ok) throw new Error(res.status);
+        const data=await res.json();
+        if(data.daily && data.current_weather){ renderCurrent(data.current_weather); renderForecast(data.daily); }
+    }catch(e){ document.getElementById('current-weather-container').innerHTML=`<div class="cw-icon">❌</div><div><div class="cw-temp" style="color:#ef4444;font-size:18px;">โหลดไม่สำเร็จ</div></div>`; }
 }
-
-async function fetchWeather() {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&daily=weather_code,temperature_2m_max,temperature_2m_min,rain_sum&timezone=Asia%2FBangkok&forecast_days=7`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (data && data.daily && data.current_weather) {
-            renderCurrentWeather(data.current_weather);
-            renderForecast(data.daily);
-        } else {
-            throw new Error('Data format incorrect');
-        }
-    } catch (error) {
-        document.getElementById('current-weather-container').innerHTML = `
-            <div class="cw-icon">❌</div>
-            <div><div class="cw-temp" style="color: #ef4444; font-size:18px;">โหลดไม่สำเร็จ</div></div>
-        `;
-        console.error('Weather Error:', error);
-    }
+function renderCurrent(c){
+    const w=wmoWeatherMap[c.weathercode]||{t:"ไม่ทราบ",i:"🌥️"};
+    document.getElementById('current-weather-container').innerHTML=`
+        <div class="cw-icon">${w.i}</div>
+        <div><div class="cw-temp">${c.temperature}°C</div><div class="cw-desc">${w.t} (ลม ${c.windspeed} กม/ชม)</div></div>`;
 }
-
-function renderCurrentWeather(current) {
-    const container = document.getElementById('current-weather-container');
-    const weather = wmoWeatherMap[current.weathercode] || { text: "ไม่ทราบสภาพอากาศ", icon: "🌥️" };
-    container.innerHTML = `
-        <div class="cw-icon">${weather.icon}</div>
-        <div>
-            <div class="cw-temp">${current.temperature}°C</div>
-            <div class="cw-desc">${weather.text} (ลม ${current.windspeed} กม/ชม)</div>
-        </div>
-    `;
-}
-
-function renderForecast(daily) {
-    const forecastContainer = document.getElementById('forecast-wrapper');
-    forecastContainer.innerHTML = '';
-    for (let i = 0; i < daily.time.length; i++) {
-        const date = i === 0 ? 'วันนี้' : formatDate(daily.time[i]);
-        const maxTemp = daily.temperature_2m_max[i] ?? '--';
-        const minTemp = daily.temperature_2m_min[i] ?? '--';
-        const rain = daily.rain_sum[i] ?? 0;
-        const code = daily.weather_code[i] ?? 0;
-        const weather = wmoWeatherMap[code] || { text: "มีเมฆ/ฝนบางส่วน", icon: "🌦️" };
-
-        const card = document.createElement('div');
-        card.className = 'forecast-card';
-        card.innerHTML = `
-            <div class="date">${date}</div>
-            <div class="icon">${weather.icon}</div>
-            <div class="temp"><span class="temp-max">${maxTemp}°</span> / <span class="temp-min">${minTemp}°</span></div>
-            <div class="rain">💧 ${rain} มม.</div>
-        `;
-        forecastContainer.appendChild(card);
+function renderForecast(d){
+    const wrap=document.getElementById('forecast-wrapper'); wrap.innerHTML='';
+    for(let i=0;i<d.time.length;i++){
+        const date=i===0?'วันนี้':formatDate(d.time[i]);
+        const w=wmoWeatherMap[d.weather_code[i]]||{t:"เมฆ/ฝน",i:"🌦️"};
+        wrap.innerHTML+=`<div class="forecast-card"><div class="date">${date}</div><div class="icon">${w.i}</div><div class="temp"><span class="temp-max">${d.temperature_2m_max[i]}°</span> / <span class="temp-min">${d.temperature_2m_min[i]}°</span></div><div class="rain">💧 ${d.rain_sum[i]} มม.</div></div>`;
     }
 }
 fetchWeather();
 
 /* =========================================================
-   3) ข้อมูลสำรองกล้อง
+   3) FALLBACK CAMS
    ========================================================= */
-const FALLBACK_RAW = [
+const FALLBACK_RAW=[
 [1,'S8','hatyainai','สะพานข้างที่ว่าการ อ.หาดใหญ่','',7.002231,100.455775,'สำนักงานทรัพยากรน้ำภาค 8','27 ต.ค. 69','17:57','2026-10-27 17:57:32'],
 [3,'S2','bangsala','สะพานบางศาลา','',6.93120684682416,100.439536371,'SCCCRN','27 ต.ค. 69','17:55','2026-10-27 17:55:56'],
 [9,'S1','muangkong','สะพานม่วงก็อง','',6.823193,100.438272,'SCCCRN','27 ต.ค. 69','17:56','2026-10-27 17:56:33'],
@@ -506,527 +340,220 @@ const FALLBACK_RAW = [
 [83,'S023','sriphuwanart','อุโมงค์ถนนศรีภูวนารถ','',6.997437,100.467089,'','27 ต.ค. 69','17:58','2026-10-27 17:58:06'],
 [84,'S024','bangklam','คลองบางกล่ำ','',7.060519,100.453527,'','27 ต.ค. 69','17:56','2026-10-27 17:56:22']
 ];
-
-const FALLBACK = FALLBACK_RAW.map(r => ({
-  cameraId: r[0], code: r[1], name: r[2], title: r[3], statusMsg: r[4] || '',
-  location: { latitude: r[5], longitude: r[6] },
-  sponsorName: r[7] || '',
-  photo: `https://hatyaicityclimate.org/floodphoto/last/${r[2]}.jpg`,
-  date: r[8], time: r[9], atDate: r[10]
-}));
+const FALLBACK=FALLBACK_RAW.map(r=>({cameraId:r[0],code:r[1],name:r[2],title:r[3],statusMsg:r[4]||'',location:{latitude:r[5],longitude:r[6]},sponsorName:r[7]||'',photo:`https://hatyaicityclimate.org/floodphoto/last/${r[2]}.jpg`,date:r[8],time:r[9],atDate:r[10]}));
 
 /* =========================================================
-   4) แผนที่ & เลเยอร์
+   4) MAP & LAYERS
    ========================================================= */
-const map = L.map('map', { zoomControl: false, preferCanvas: true });
-L.control.zoom({ position: 'bottomright' }).addTo(map);
+const map=L.map('map',{zoomControl:false,preferCanvas:true});
+L.control.zoom({position:'bottomright'}).addTo(map);
 
-const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-    maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google Maps'
-});
-const openTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    maxZoom: 17, attribution: '© OpenTopoMap (CC-BY-SA)'
-});
-const esriDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16, attribution: '© Esri, HERE, Garmin, © OpenStreetMap contributors'
-});
+const googleHybrid=L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom:20,subdomains:['mt0','mt1','mt2','mt3'],attribution:'© Google Maps'});
+const openTopo=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'© OpenTopoMap'});
+const esriDark=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'© Esri'});
 
 googleHybrid.addTo(map);
 
-// Radar Overlay
-const radarUrl = 'https://semet.uk/loop/SKLLoop.gif';
-const radarBounds = [[6.074166, 99.402328], [8.297372, 101.484333]];
-const radarOverlay = L.imageOverlay(radarUrl, radarBounds, { opacity: 0.7, alt: 'Radar' }).addTo(map);
+const radarUrl='https://semet.uk/loop/SKLLoop.gif';
+const radarBounds=[[6.074166,99.402328],[8.297372,101.484333]];
+const radarOverlay=L.imageOverlay(radarUrl,radarBounds,{opacity:0.7,alt:'Radar'}).addTo(map);
 
-map.fitBounds(radarBounds, { padding: [0, 0] });
-setTimeout(() => {
-    map.invalidateSize();
-    map.fitBounds(radarBounds, { padding: [0, 0] });
-}, 500);
+map.fitBounds(radarBounds,{padding:[0,0]});
+setTimeout(()=>{map.invalidateSize();map.fitBounds(radarBounds,{padding:[0,0]});},500);
 
-// Rain Layer Group
-const rainLayer = L.layerGroup();
-let rainDataLoaded = false;
-let rainVisible = false;
+const rainLayer=L.layerGroup(); let rainDataLoaded=false; let rainVisible=false;
 
-const baseLayers = {
-    '🛰️ Google Hybrid': googleHybrid,
-    '⛰️ OpenTopoMap': openTopo,
-    '🌃 แบบมืด (Dark)': esriDark
-};
-const overlays = { 
-    '🌧️ เรดาร์น้ำฝน (Radar)': radarOverlay,
-    '🌧️ ฝนสะสม 24 ชม.': rainLayer
-};
+const baseLayers={'🛰️ Google Hybrid':googleHybrid,'⛰️ OpenTopoMap':openTopo,'🌃 แบบมืด (Dark)':esriDark};
+const overlays={'🌧️ เรดาร์น้ำฝน (Radar)':radarOverlay,'🌧️ ฝนสะสม 24 ชม.':rainLayer};
+L.control.layers(baseLayers,overlays,{position:'topright'}).addTo(map);
+L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 
-L.control.layers(baseLayers, overlays, { position: 'topright' }).addTo(map);
-L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
-
-/* =========================================================
-   5) Custom Opacity Slider
-   ========================================================= */
-const opacityControl = L.control({ position: 'bottomright' });
-opacityControl.onAdd = function(map) {
-    const div = L.DomUtil.create('div', 'leaflet-control opacity-control');
-    div.innerHTML = `
-        <span>🌧️ เรดาร์:</span>
-        <input type="range" id="radar-opacity-slider" min="0" max="1" step="0.05" value="0.7">
-    `;
-    L.DomEvent.disableClickPropagation(div);
-    return div;
+// Opacity Slider
+const opacityControl=L.control({position:'bottomright'});
+opacityControl.onAdd=function(){
+    const div=L.DomUtil.create('div','leaflet-control opacity-control');
+    div.innerHTML=`<span>🌧️ เรดาร์:</span><input type="range" id="radar-opacity-slider" min="0" max="1" step="0.05" value="0.7" style="cursor:pointer; accent-color:var(--brand); width:100px;">`;
+    div.style.cssText='background:#fff;padding:8px 12px;border-radius:10px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;font-family:inherit;font-size:13px;font-weight:600;margin-bottom:10px;border:1px solid var(--line);';
+    L.DomEvent.disableClickPropagation(div); return div;
 };
 opacityControl.addTo(map);
+setTimeout(()=>{const s=document.getElementById('radar-opacity-slider'); if(s) s.addEventListener('input',e=>radarOverlay.setOpacity(parseFloat(e.target.value)));},100);
 
-setTimeout(() => {
-    const slider = document.getElementById('radar-opacity-slider');
-    if (slider) {
-        slider.addEventListener('input', function(e) {
-            radarOverlay.setOpacity(parseFloat(e.target.value));
-        });
-    }
-}, 100);
-
-// Marker Cluster
-const cluster = L.markerClusterGroup({
-  showCoverageOnHover: false, maxClusterRadius: 50, disableClusteringAtZoom: 16
-}).addTo(map);
+const cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,disableClusteringAtZoom:16}).addTo(map);
 
 /* =========================================================
-   6) ตัวช่วยเหลือ
+   5) HELPERS
    ========================================================= */
-const esc = s => String(s ?? '').replace(/[&<>"']/g,
-  m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-
-const ICONS = {};
-function pinIcon(color){
-  if (!ICONS[color]) {
-    ICONS[color] = L.divIcon({
-      className: 'cam-pin',
-      html: `<div class="pin" style="--c:${color}"></div>`,
-      iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10]
-    });
-  }
-  return ICONS[color];
-}
-
-function parseDate(s){
-  if (!s) return null;
-  const d = new Date(String(s).replace(' ', 'T'));
-  return isNaN(d) ? null : d;
-}
-
-function statusOf(c){
-  if (c.statusMsg && c.statusMsg.trim()) return { color: '#dc2626', label: c.statusMsg.trim() };
-  const d = parseDate(c.atDate);
-  if (d && (Date.now() - d.getTime()) / 60000 > STALE_MINUTES)
-    return { color: '#9ca3af', label: 'ข้อมูลไม่อัปเดต' };
-  return { color: '#16a34a', label: 'ปกติ' };
-}
-
-function imgUrl(c){
-  if (!c.photo) return '';
-  return c.photo + '?t=' + encodeURIComponent(c.atDate || Date.now());
-}
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const ICONS={};
+function pinIcon(color){ if(!ICONS[color]) ICONS[color]=L.divIcon({className:'cam-pin',html:`<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.35);"></div>`,iconSize:[18,18],iconAnchor:[9,9],popupAnchor:[0,-10]}); return ICONS[color]; }
+function parseDate(s){ if(!s) return null; const d=new Date(String(s).replace(' ','T')); return isNaN(d)?null:d; }
+function statusOf(c){ if(c.statusMsg&&c.statusMsg.trim()) return {color:'#dc2626',label:c.statusMsg.trim()}; const d=parseDate(c.atDate); if(d&&(Date.now()-d.getTime())/60000>STALE_MINUTES) return {color:'#9ca3af',label:'ข้อมูลไม่อัปเดต'}; return {color:'#16a34a',label:'ปกติ'}; }
+function imgUrl(c){ return c.photo?c.photo+'?t='+encodeURIComponent(c.atDate||Date.now()):''; }
 
 /* =========================================================
-   7) Popup
+   6) POPUP
    ========================================================= */
 function popupHtml(c){
-  const st = statusOf(c);
-  const isLive = (c.cameraId === 1 || c.code === 'S8'); 
-  const liveUrl = 'http://live:Live2025!@ta200304.dyndns.info:5001/axis-cgi/mjpg/video.cgi';
-
-  let btnHtml = '';
-  if (isLive && c.photo) {
-    btnHtml = `
-      <div class="pop-btn-wrap">
-        <a class="pop-btn static-btn" href="${esc(c.photo)}" target="_blank" rel="noopener">ภาพนิ่ง ↗</a>
-        <a class="pop-btn live-btn" href="${liveUrl}" target="_blank" rel="noopener" title="หากภาพไม่ขึ้น ให้กดปุ่มนี้เพื่อเปิดในแท็บใหม่">
-          🔴 ดูภาพสด (Live)
-        </a>
-      </div>
-    `;
-  } else if (c.photo) {
-    btnHtml = `
-      <div class="pop-btn-wrap">
-        <a class="pop-btn" href="${esc(c.photo)}" target="_blank" rel="noopener">เปิดภาพเต็ม ↗</a>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="pop">
-      <div class="pop-title">${esc(c.title)}</div>
-      ${c.photo ? `<a href="${esc(c.photo)}" target="_blank" rel="noopener" id="img-link-${c.cameraId}">
-          <img class="pop-img" id="pop-img-${c.cameraId}" src="${esc(imgUrl(c))}" alt="${esc(c.title)}"
-               loading="lazy" onerror="this.style.display='none'"></a>` : ''}
-      
-      ${c.lat && c.lng ? `<div class="pop-coord">📍 ${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</div>` : ''}
-      
-      <div class="pop-row">
-        <span class="badge" style="background:${st.color}">${esc(st.label)}</span>
-        <span class="code">${esc(c.code)}</span>
-      </div>
-      <div class="pop-time">🕒 ${esc(c.date)} ${esc(c.time)} น.</div>
-      ${c.sponsorName ? `<div class="pop-sp">📷 ${esc(c.sponsorName)}</div>` : ''}
-      
-      ${btnHtml}
-    </div>`;
+    const st=statusOf(c); const isLive=(c.cameraId===1||c.code==='S8');
+    const liveUrl='http://live:Live2025!@ta200304.dyndns.info:5001/axis-cgi/mjpg/video.cgi';
+    let btn='';
+    if(isLive&&c.photo) btn=`<div class="pop-btn-wrap"><a class="pop-btn static-btn" href="${esc(c.photo)}" target="_blank">ภาพนิ่ง ↗</a><a class="pop-btn live-btn" href="${liveUrl}" target="_blank" title="หากภาพไม่ขึ้น ให้เปิดในแท็บใหม่">🔴 ดูภาพสด (Live)</a></div>`;
+    else if(c.photo) btn=`<div class="pop-btn-wrap"><a class="pop-btn" href="${esc(c.photo)}" target="_blank">เปิดภาพเต็ม ↗</a></div>`;
+    return `<div class="pop"><div class="pop-title">${esc(c.title)}</div>
+    ${c.photo?`<a href="${esc(c.photo)}" target="_blank" id="img-link-${c.cameraId}"><img class="pop-img" id="pop-img-${c.cameraId}" src="${esc(imgUrl(c))}" onerror="this.style.display='none'"></a>`:''}
+    ${c.lat&&c.lng?`<div class="pop-coord">📍 ${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</div>`:''}
+    <div class="pop-row"><span class="badge" style="background:${st.color}">${esc(st.label)}</span><span class="code">${esc(c.code)}</span></div>
+    <div class="pop-time">🕒 ${esc(c.date)} ${esc(c.time)} น.</div>
+    ${c.sponsorName?`<div style="font-size:12px;color:var(--muted);margin-top:4px;">📷 ${esc(c.sponsorName)}</div>`:''}
+    ${btn}</div>`;
 }
 
 /* =========================================================
-   8) ระบบฝนสะสม 24 ชม. (ThaiWater API)
+   7) RAIN DATA (ThaiWater API) - FILTER SONGKHLA ONLY
    ========================================================= */
-function getRainColor(rain) {
-  if (rain <= 10) return '#a7f3d0'; // สีเขียวอ่อน
-  if (rain <= 35) return '#6ee7b7'; // สีเขียว
-  if (rain <= 90) return '#fde047'; // สีเหลือง
-  if (rain <= 150) return '#fb923c'; // สีส้ม
-  return '#ef4444'; // สีแดง (หนัก)
+function getRainColor(r){ if(r<=10)return '#a7f3d0'; if(r<=35)return '#6ee7b7'; if(r<=90)return '#fde047'; if(r<=150)return '#fb923c'; return '#ef4444'; }
+function getRainRadius(r){ if(r<=10)return 6; if(r<=35)return 8; if(r<=90)return 10; if(r<=150)return 12; return 14; }
+
+async function fetchRainData(){
+    try{
+        const res=await fetch(API_RAIN); if(!res.ok) throw new Error(res.status);
+        const json=await res.json(); const items=json.data||json.items||[];
+        // Songkhla Bounding Box
+        const songkhlaItems=items.filter(item=>{
+            const lat=parseFloat(item.station?.tele_station_lat);
+            const lon=parseFloat(item.station?.tele_station_long);
+            return (lat>=6.40&&lat<=7.80&&lon>=99.90&&lon<=101.15);
+        });
+        rainLayer.clearLayers();
+        songkhlaItems.forEach(item=>{
+            const st=item.station; const lat=parseFloat(st?.tele_station_lat); const lon=parseFloat(st?.tele_station_long);
+            if(isNaN(lat)||isNaN(lon)) return;
+            const rain=parseFloat(item.rain_24h??item.rain??0);
+            const basinName=item.basin?.basin_name?.th||'ไม่ระบุลุ่มน้ำ';
+            const stationName=st?.tele_station_name?.th||'ไม่ระบุชื่อ';
+            const circle=L.circleMarker([lat,lon],{radius:getRainRadius(rain),fillColor:getRainColor(rain),color:'#fff',weight:2,opacity:1,fillOpacity:0.8});
+            circle.bindPopup(`<div style="font-weight:700;font-size:15px;margin-bottom:8px;">📍 ${esc(stationName)}</div><div style="font-size:28px;font-weight:700;color:#10b981;line-height:1;margin-bottom:4px;">${rain.toFixed(1)} <span style="font-size:12px;color:var(--muted);">มม.</span></div><div style="font-size:12px;color:var(--muted);margin-top:8px;background:#f1f5f9;padding:4px 8px;border-radius:6px;display:inline-block;">🏞️ ${esc(basinName)}</div><div style="font-size:12px;color:var(--muted);margin-top:8px;">🆔 ${esc(st?.tele_station_oldcode||'-')}</div>`);
+            rainLayer.addLayer(circle);
+        });
+        rainDataLoaded=true; console.log('Rain loaded:',songkhlaItems.length,'stations in Songkhla');
+    }catch(e){ console.warn('Rain API Error:',e.message); }
 }
-
-function getRainRadius(rain) {
-  if (rain <= 10) return 6;
-  if (rain <= 35) return 8;
-  if (rain <= 90) return 10;
-  if (rain <= 150) return 12;
-  return 14;
-}
-
-async function fetchRainData() {
-  try {
-    const res = await fetch(API_RAIN);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
-    const items = json.data || json.items || [];
-    
-    // ----------------------------------------------------
-    // ปรับแต่งกรอบพิกัดให้แคบลง เพื่อเอาเฉพาะพื้นที่ จ.สงขลา
-    // ลองจิจูด (Longitude) ประมาณ 99.9 - 101.15
-    // ละติจูด (Latitude) ประมาณ 6.4 - 7.8
-    // ----------------------------------------------------
-    const songkhlaItems = items.filter(item => {
-      const lat = parseFloat(item.station?.tele_station_lat);
-      const lon = parseFloat(item.station?.tele_station_long);
-      
-      // ตรวจสอบพิกัดภูมิศาสตร์ที่แคบลง (ตัดสตูล ปัตตานี ยะลา นราธิวาส พัทลุง ออก)
-      const isInSongkhlaCoords = (
-        lat >= 6.40 && lat <= 7.80 && 
-        lon >= 99.90 && lon <= 101.15
-      );
-      
-      return isInSongkhlaCoords;
-    });
-
-    // วาดจุดลงใน rainLayer
-    rainLayer.clearLayers();
-    
-    songkhlaItems.forEach(item => {
-      const st = item.station;
-      const lat = parseFloat(st?.tele_station_lat);
-      const lon = parseFloat(st?.tele_station_long);
-      if (isNaN(lat) || isNaN(lon)) return;
-
-      // ดึงปริมาณฝน (API อาจจะใช้ rain_24h หรือ rain)
-      const rain = parseFloat(item.rain_24h ?? item.rain ?? 0);
-      const basinName = item.basin?.basin_name?.th || 'ไม่ระบุลุ่มน้ำ';
-      const stationName = st?.tele_station_name?.th || 'ไม่ระบุชื่อ';
-
-      const circle = L.circleMarker([lat, lon], {
-        radius: getRainRadius(rain),
-        fillColor: getRainColor(rain),
-        color: '#fff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-      });
-
-      circle.bindPopup(`
-        <div class="rain-pop-title">📍 ${esc(stationName)}</div>
-        <div class="rain-pop-value">${rain.toFixed(1)} <span class="rain-pop-unit">มม.</span></div>
-        <div class="rain-pop-basin">🏞️ ${esc(basinName)}</div>
-        <div class="pop-coord" style="margin-top:8px;">🆔 ${esc(st?.tele_station_oldcode || '-')}</div>
-      `);
-
-      rainLayer.addLayer(circle);
-    });
-
-    rainDataLoaded = true;
-    console.log('Rain data loaded:', songkhlaItems.length, 'stations in Songkhla');
-
-  } catch (err) {
-    console.warn('โหลดข้อมูลฝนไม่สำเร็จ:', err.message);
-  }
-}
-
-// เรียกโหลดข้อมูลฝนทันที
 fetchRainData();
 
-function toggleRainLayer() {
-  const btn = document.getElementById('btn-rain-toggle');
-  
-  if (!rainDataLoaded) {
-    alert('กำลังโหลดข้อมูลฝน กรุณารอสักครู่...');
-    return;
-  }
-
-  if (rainVisible) {
-    map.removeLayer(rainLayer);
-    btn.classList.remove('active');
-    btn.innerHTML = '🌧️ ฝนสะสม 24 ชม. (สงขลา)';
-    rainVisible = false;
-  } else {
-    map.addLayer(rainLayer);
-    btn.classList.add('active');
-    btn.innerHTML = '🌧️ ซ่อนฝนสะสม 24 ชม.';
-    rainVisible = true;
-  }
+function toggleRainLayer(){
+    const btn=document.getElementById('btn-rain-toggle');
+    if(!rainDataLoaded){ alert('กำลังโหลดข้อมูลฝน กรุณารอสักครู่...'); return; }
+    if(rainVisible){ map.removeLayer(rainLayer); btn.classList.remove('active'); btn.innerHTML='🌧️ ฝนสะสม 24 ชม. (สงขลา)'; rainVisible=false; }
+    else{ map.addLayer(rainLayer); btn.classList.add('active'); btn.innerHTML='🌧️ ซ่อนฝนสะสม 24 ชม.'; rainVisible=true; }
 }
 
 /* =========================================================
-   9) วาดรายการกล้อง + หมุด
+   8) CAMERAS RENDER & LIST
    ========================================================= */
-let ALL = [];
-let currentPage = 1;
-const itemsPerPage = 8;
+let ALL=[]; let currentPage=1; const itemsPerPage=8;
 
-function normalize(x){
-  const lat = x?.location?.latitude, lng = x?.location?.longitude;
-  return {
-    cameraId: x.cameraId,
-    code: x.code || '',
-    name: x.name || '',
-    title: x.title || x.name || 'ไม่ระบุชื่อ',
-    statusMsg: x.statusMsg || '',
-    lat: (lat === null || lat === undefined || lat === '') ? null : +lat,
-    lng: (lng === null || lng === undefined || lng === '') ? null : +lng,
-    sponsorName: x.sponsorName || '',
-    photo: x.photo || '',
-    date: x.date || '',
-    time: x.time || '',
-    atDate: x.atDate || '',
-    marker: null
-  };
-}
+function normalize(x){ return {cameraId:x.cameraId,code:x.code||'',name:x.name||'',title:x.title||x.name||'ไม่ระบุชื่อ',statusMsg:x.statusMsg||'',lat:(x.location?.latitude!=null)?+x.location.latitude:null,lng:(x.location?.longitude!=null)?+x.location.longitude:null,sponsorName:x.sponsorName||'',photo:x.photo||'',date:x.date||'',time:x.time||'',atDate:x.atDate||'',marker:null}; }
 
 function render(items){
-  ALL = items.map(normalize);
-
-  ALL.forEach(c => {
-    if (c.lat === null || c.lng === null) return;
-    c.marker = L.marker([c.lat, c.lng], {
-      icon: pinIcon(statusOf(c).color),
-      title: c.title,
-      riseOnHover: true
-    }).bindPopup(popupHtml(c), { maxWidth: 320 });
-
-    c.marker.on('popupopen', e => {
-      const img = e.popup.getElement()?.querySelector('.pop-img');
-      if (img && c.photo && !img.src.includes('video.cgi')) {
-        img.src = imgUrl(c);
-      }
+    ALL=items.map(normalize);
+    ALL.forEach(c=>{
+        if(c.lat===null||c.lng===null) return;
+        c.marker=L.marker([c.lat,c.lng],{icon:pinIcon(statusOf(c).color),title:c.title,riseOnHover:true}).bindPopup(popupHtml(c),{maxWidth:320});
+        c.marker.on('popupopen',e=>{ const img=e.popup.getElement()?.querySelector('.pop-img'); if(img&&c.photo&&!img.src.includes('video.cgi')) img.src=imgUrl(c); });
     });
-  });
-
-  applyFilter(document.getElementById('q').value);
+    applyFilter(document.getElementById('q').value);
 }
 
 function buildList(list){
-  const ul = document.getElementById('list');
-  ul.innerHTML = '';
-  if (!list.length){
-    ul.innerHTML = '<li class="empty">ไม่พบกล้องที่ตรงกับคำค้น</li>';
-    return;
-  }
-  const frag = document.createDocumentFragment();
-  list.forEach(c => {
-    const st = statusOf(c);
-    const li = document.createElement('li');
-    li.className = 'cam-item';
-    li.innerHTML = `
-      ${c.photo
-        ? `<img class="thumb" loading="lazy" src="${esc(imgUrl(c))}" alt=""
-               onerror="this.style.visibility='hidden'">`
-        : `<div class="thumb"></div>`}
-      <div class="meta">
-        <div class="name">${esc(c.title)}</div>
-        <div class="sub">
-          <i class="dot" style="background:${st.color}"></i>
-          ${esc(c.code)} · ${esc(c.time)} น.
-        </div>
-      </div>`;
-    li.addEventListener('click', () => focusCam(c));
-    frag.appendChild(li);
-  });
-  ul.appendChild(frag);
+    const ul=document.getElementById('list'); ul.innerHTML='';
+    if(!list.length){ ul.innerHTML='<li class="empty">ไม่พบกล้องที่ตรงกับคำค้น</li>'; return; }
+    const frag=document.createDocumentFragment();
+    list.forEach(c=>{
+        const st=statusOf(c); const li=document.createElement('li'); li.className='cam-item';
+        li.innerHTML=`${c.photo?`<img class="thumb" loading="lazy" src="${esc(imgUrl(c))}" onerror="this.style.visibility='hidden'">`:`<div class="thumb"></div>`}<div class="meta"><div class="name">${esc(c.title)}</div><div class="sub"><i class="dot" style="background:${st.color}"></i>${esc(c.code)} · ${esc(c.time)} น.</div></div>`;
+        li.addEventListener('click',()=>focusCam(c)); frag.appendChild(li);
+    });
+    ul.appendChild(frag);
 }
 
 function applyFilter(q){
-  const s = (q || '').trim().toLowerCase();
-  const list = ALL.filter(c =>
-    !s || (c.title + ' ' + c.name + ' ' + c.code).toLowerCase().includes(s)
-  );
-
-  cluster.clearLayers();
-  list.forEach(c => { if (c.marker) cluster.addLayer(c.marker); });
-
-  buildList(list);
-  document.getElementById('count').textContent = list.length + ' กล้อง';
+    const s=(q||'').trim().toLowerCase();
+    const list=ALL.filter(c=>!s||(c.title+' '+c.name+' '+c.code).toLowerCase().includes(s));
+    cluster.clearLayers(); list.forEach(c=>{ if(c.marker) cluster.addLayer(c.marker); });
+    buildList(list); document.getElementById('count').textContent=list.length+' กล้อง';
 }
 
 function focusCam(c){
-  if (window.innerWidth <= 820) {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-toggle').classList.add('collapsed');
-  }
-  
-  if (!c.marker) { alert('กล้องนี้ไม่มีพิกัดบนแผนที่'); return; }
-  cluster.zoomToShowLayer(c.marker, () => {
-    map.flyTo(c.marker.getLatLng(), Math.max(map.getZoom(), 16), { duration: .6 });
-    c.marker.openPopup();
-  });
+    if(window.innerWidth<=820){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-toggle').classList.add('collapsed'); }
+    if(!c.marker){ alert('กล้องนี้ไม่มีพิกัดบนแผนที่'); return; }
+    cluster.zoomToShowLayer(c.marker,()=>{ map.flyTo(c.marker.getLatLng(),Math.max(map.getZoom(),16),{duration:.6}); c.marker.openPopup(); });
 }
 
 /* =========================================================
-   10) โหลดข้อมูลกล้อง
+   9) LOAD CAMS
    ========================================================= */
 async function loadCams(){
-  const btn = document.getElementById('refresh');
-  btn.disabled = true; btn.textContent = '⏳ โหลด';
-  
-  try {
-    const res = await fetch(API_CAMS + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
-    let items = json.items || json.data || [];
+    const btn=document.getElementById('refresh'); btn.disabled=true; btn.textContent='⏳ โหลด';
+    try{
+        const res=await fetch(API_CAMS+'?t='+Date.now(),{cache:'no-store'}); if(!res.ok) throw new Error(res.status);
+        const json=await res.json(); let items=json.items||json.data||[];
+        items=items.filter(item=>!String(item.code||'').toUpperCase().startsWith('R'));
+        if(!items.length) throw new Error('No cam data');
+        render(items);
+    }catch(e){ console.warn('Cam API Error:',e.message,'→ Fallback'); render(FALLBACK); }
+    finally{ btn.disabled=false; btn.textContent='⟳ โหลดใหม่'; }
+}
 
-    items = items.filter(item => {
-      const code = String(item.code || '').toUpperCase();
-      return !code.startsWith('R');
+/* =========================================================
+   10) OVERLAYS & CLOCK
+   ========================================================= */
+function openWaterView(){ document.getElementById('water-overlay').classList.add('active'); }
+function closeWaterView(){ document.getElementById('water-overlay').classList.remove('active'); }
+
+function openMultiview(){ if(ALL.length===0) return; currentPage=1; renderMultiview(); document.getElementById('multiview-overlay').classList.add('active'); }
+function closeMultiview(){ document.getElementById('multiview-overlay').classList.remove('active'); }
+
+function renderMultiview(){
+    const grid=document.getElementById('multiview-grid'); grid.innerHTML='';
+    const start=(currentPage-1)*itemsPerPage; const end=start+itemsPerPage;
+    ALL.slice(start,end).forEach(c=>{
+        const st=statusOf(c); const div=document.createElement('div'); div.className='grid-item';
+        div.onclick=()=>{ closeMultiview(); focusCam(c); };
+        div.innerHTML=`${c.photo?`<img src="${esc(imgUrl(c))}" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzQiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXJyb3I8L3RleHQ+PC9zdmc+'">`:''}<div class="grid-info"><div class="g-title">${esc(c.title)}</div><div class="g-code"><i class="dot" style="background:${st.color}"></i>${esc(c.code)} · ${esc(c.time)} น.</div></div>`;
+        grid.appendChild(div);
     });
+    renderPagination();
+}
 
-    if (!items.length) throw new Error('ไม่มีข้อมูลกล้อง');
-    render(items);
-  } catch (err) {
-    console.warn('โหลด API ไม่สำเร็จ:', err.message, '→ ใช้ข้อมูลสำรอง');
-    render(FALLBACK);
-  } finally {
-    btn.disabled = false; btn.textContent = '⟳ โหลดใหม่';
-  }
+function renderPagination(){
+    const pag=document.getElementById('multiview-pagination'); pag.innerHTML='';
+    const total=Math.ceil(ALL.length/itemsPerPage);
+    const prev=document.createElement('button'); prev.className='page-btn'; prev.textContent='◀ ก่อนหน้า'; prev.disabled=currentPage===1; prev.onclick=()=>{ if(currentPage>1){ currentPage--; renderMultiview(); } }; pag.appendChild(prev);
+    for(let i=1;i<=total;i++){ const btn=document.createElement('button'); btn.className=`page-btn ${i===currentPage?'active':''}`; btn.textContent=i; btn.onclick=()=>{ currentPage=i; renderMultiview(); }; pag.appendChild(btn); }
+    const next=document.createElement('button'); next.className='page-btn'; next.textContent='ถัดไป ▶'; next.disabled=currentPage===total; next.onclick=()=>{ if(currentPage<total){ currentPage++; renderMultiview(); } }; pag.appendChild(next);
+}
+
+function updateClock(){
+    const now=new Date(); const opt={weekday:'long',year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'};
+    document.getElementById('clock').textContent=now.toLocaleString('th-TH',opt)+' น.';
 }
 
 /* =========================================================
-   11) Overlay Controls (Water & Multiview)
+   11) INIT & EVENTS
    ========================================================= */
-function openWaterView() { document.getElementById('water-overlay').classList.add('active'); }
-function closeWaterView() { document.getElementById('water-overlay').classList.remove('active'); }
-
-function openMultiview() {
-  if (ALL.length === 0) return;
-  currentPage = 1;
-  renderMultiview();
-  document.getElementById('multiview-overlay').classList.add('active');
-}
-
-function closeMultiview() { document.getElementById('multiview-overlay').classList.remove('active'); }
-
-function renderMultiview() {
-  const grid = document.getElementById('multiview-grid');
-  grid.innerHTML = '';
-
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const endIdx = startIdx + itemsPerPage;
-  const pageItems = ALL.slice(startIdx, endIdx);
-
-  pageItems.forEach(c => {
-    const st = statusOf(c);
-    const div = document.createElement('div');
-    div.className = 'grid-item';
-    div.onclick = () => { closeMultiview(); focusCam(c); };
-    div.innerHTML = `
-      ${c.photo ? `<img src="${esc(imgUrl(c))}" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzQiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXJyb3I8L3RleHQ+PC9zdmc+'">` : ''}
-      <div class="grid-info">
-        <div class="g-title">${esc(c.title)}</div>
-        <div class="g-code"><i class="dot" style="background:${st.color}"></i> ${esc(c.code)} · ${esc(c.time)} น.</div>
-      </div>
-    `;
-    grid.appendChild(div);
-  });
-
-  renderPagination();
-}
-
-function renderPagination() {
-  const pag = document.getElementById('multiview-pagination');
-  pag.innerHTML = '';
-
-  const totalPages = Math.ceil(ALL.length / itemsPerPage);
-
-  const prevBtn = document.createElement('button');
-  prevBtn.className = 'page-btn';
-  prevBtn.textContent = '◀ ก่อนหน้า';
-  prevBtn.disabled = currentPage === 1;
-  prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderMultiview(); } };
-  pag.appendChild(prevBtn);
-
-  for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement('button');
-    btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-    btn.textContent = i;
-    btn.onclick = () => { currentPage = i; renderMultiview(); };
-    pag.appendChild(btn);
-  }
-
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'page-btn';
-  nextBtn.textContent = 'ถัดไป ▶';
-  nextBtn.disabled = currentPage === totalPages;
-  nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderMultiview(); } };
-  pag.appendChild(nextBtn);
-}
-
-/* =========================================================
-   12) ระบบเวลา, Sidebar, Event
-   ========================================================= */
-function updateClock() {
-  const now = new Date();
-  const options = { 
-    weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', 
-    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok'
-  };
-  document.getElementById('clock').textContent = now.toLocaleString('th-TH', options) + ' น.';
-}
-
-const sidebar = document.getElementById('sidebar');
-const toggleBtn = document.getElementById('sidebar-toggle');
-
-toggleBtn.addEventListener('click', () => {
-  const isMobile = window.innerWidth <= 820;
-  if (isMobile) {
-    sidebar.classList.toggle('open');
-    toggleBtn.classList.toggle('collapsed');
-    toggleBtn.textContent = sidebar.classList.contains('open') ? '◀' : '☰';
-  } else {
-    sidebar.classList.toggle('collapsed');
-    toggleBtn.classList.toggle('collapsed');
-    toggleBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
-    setTimeout(() => map.invalidateSize(), 350); 
-  }
+const sidebar=document.getElementById('sidebar'); const toggleBtn=document.getElementById('sidebar-toggle');
+toggleBtn.addEventListener('click',()=>{
+    const mobile=window.innerWidth<=820;
+    if(mobile){ sidebar.classList.toggle('open'); toggleBtn.classList.toggle('collapsed'); toggleBtn.textContent=sidebar.classList.contains('open')?'◀':'☰'; }
+    else{ sidebar.classList.toggle('collapsed'); toggleBtn.classList.toggle('collapsed'); toggleBtn.textContent=sidebar.classList.contains('collapsed')?'▶':'◀'; setTimeout(()=>map.invalidateSize(),350); }
 });
+if(window.innerWidth<=820){ toggleBtn.textContent='☰'; toggleBtn.classList.add('collapsed'); }
 
-if (window.innerWidth <= 820) {
-  toggleBtn.textContent = '☰';
-  toggleBtn.classList.add('collapsed');
-}
+document.getElementById('q').addEventListener('input',e=>applyFilter(e.target.value));
+document.getElementById('refresh').addEventListener('click',loadCams);
 
-document.getElementById('q').addEventListener('input', e => applyFilter(e.target.value));
-document.getElementById('refresh').addEventListener('click', loadCams);
-
-// เริ่มต้นโหลดข้อมูล
-loadCams();
-updateClock();
-setInterval(updateClock, 1000);
-setInterval(loadCams, 3 * 60 * 1000);
+loadCams(); updateClock(); setInterval(updateClock,1000); setInterval(loadCams,3*60*1000);
 </script>
 </body>
 </html>
