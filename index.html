@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>ศูนย์ข้อมูลน้ำหาดใหญ่ · CCTV & Weather</title>
 
 <!-- Leaflet & MarkerCluster CSS -->
@@ -25,10 +25,10 @@
   }
   
   * { box-sizing: border-box; }
-  html, body { height: 100dvh; margin: 0; }
-  body { font-family: 'Inter', 'Sarabun', sans-serif; color: var(--txt); background: #f1f5f9; overflow: hidden; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body { font-family: 'Inter', 'Sarabun', sans-serif; color: var(--txt); background: #f1f5f9; }
   
-  #app { display: flex; height: 100dvh; position: relative; overflow: hidden; }
+  #app { display: flex; height: 100%; position: relative; overflow: hidden; }
 
   /* ---------- Sidebar ---------- */
   #sidebar {
@@ -37,7 +37,7 @@
     display: flex; flex-direction: column; z-index: 1000;
     transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-lg);
-    height: 100dvh;
+    height: 100%;
     overflow: hidden;
   }
   #sidebar.collapsed { margin-left: -380px; }
@@ -112,9 +112,10 @@
   #list { 
     list-style: none; margin: 0; padding: 12px; 
     overflow-y: auto; flex: 1; min-height: 0; 
-    background: #f8fafc; padding-bottom: 100px;
+    background: #f8fafc; padding-bottom: 150px; /* ดันรายการสุดท้ายให้พ้นแถบมือถือ */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+    touch-action: pan-y;
   }
   .cam-item { display: flex; gap: 12px; padding: 10px; border-radius: 12px; cursor: pointer; align-items: center; background: #fff; border: 1px solid var(--line); margin-bottom: 8px; box-shadow: var(--shadow-sm); transition: 0.2s; }
   .cam-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -244,22 +245,46 @@
   .lightbox-close { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 44px; height: 44px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, transform 0.2s; }
   .lightbox-close:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.1); }
 
-  /* Mobile */
+  /* =========================================
+     Mobile Fixes (แก้ปัญหา Scroll ไม่ได้)
+     ========================================= */
   @media (max-width: 820px) {
-    #app { display: block; height: 100dvh; }
-    #sidebar { 
-      position: fixed; top: 0; left: 0; width: 88%; max-width: 380px; 
-      height: 100dvh; z-index: 2000; transform: translateX(-102%); 
-      box-shadow: 4px 0 24px rgba(0,0,0,0.25); margin-left: 0; 
-      display: flex; flex-direction: column;
+    #app { 
+      display: block; 
+      height: 100%; 
+      overflow: hidden; 
     }
+    
+    #sidebar { 
+      position: fixed; 
+      top: 0; 
+      bottom: 0; /* ใช้ Top/Bottom แทน Height */
+      left: 0; 
+      width: 88%; 
+      max-width: 380px; 
+      z-index: 2000; 
+      transform: translateX(-102%); 
+      box-shadow: 4px 0 24px rgba(0,0,0,0.25); 
+      margin-left: 0; 
+      display: flex; 
+      flex-direction: column;
+      height: auto; /* ให้ Top/Bottom ควบคุมความสูง */
+    }
+    
     #sidebar.collapsed { transform: translateX(-102%); }
     #sidebar.open { transform: none; }
     #sidebar-toggle { left: 16px !important; z-index: 2100; }
-    #map-wrapper { height: 100dvh; width: 100%; }
     
-    /* สำคัญ: จำกัดความสูงของ Top Panel ไม่ให้กินพื้นที่จนหมด เพื่อให้ List มีพื้นที่ Scroll */
+    #map-wrapper { height: 100%; width: 100%; }
+    
+    /* จำกัดความสูงของข้อมูลส่วนบนไม่ให้เกิน 50% ของหน้าจอ */
     #top-panel { max-height: 50vh; }
+    
+    /* บังคับให้ Scroll ในรายการได้แน่นอน */
+    #list {
+      touch-action: pan-y;
+      overscroll-behavior-y: contain;
+    }
     
     .grid-container { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); padding: 10px; gap: 8px; }
     .gistda-grid { grid-template-columns: 1fr; padding: 10px; }
