@@ -437,6 +437,7 @@
 function setAppHeight(){
     const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
     document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
+    if (typeof fitList === 'function') fitList();
 }
 setAppHeight();
 window.addEventListener('resize', setAppHeight);
@@ -828,12 +829,70 @@ toggleBtn.addEventListener('click',()=>{
 });
 if(window.innerWidth<=820){ toggleBtn.textContent='☰'; toggleBtn.classList.add('collapsed'); }
 
-// ไม่ให้ท่าทางสัมผัสใน sidebar ทะลุไปถึงแผนที่ (กันแผนที่แย่ง scroll/drag)
-['touchstart','touchmove','wheel','pointerdown'].forEach(evt=>{
-    sidebar.addEventListener(evt, e=>e.stopPropagation(), {passive:true});
-});
-L.DomEvent.disableClickPropagation(sidebar);
-L.DomEvent.disableScrollPropagation(sidebar);
+/* ---------- กำหนดความสูงรายการกล้องด้วย JS (มือถือ) ---------- */
+function fitList(){
+    const sb=document.getElementById('sidebar');
+    const list=document.getElementById('list');
+    const legend=sb.querySelector('.legend');
+    if(window.innerWidth>820){ list.style.height=''; list.style.flex=''; return; }
+    const sbRect=sb.getBoundingClientRect();
+    const listTop=list.getBoundingClientRect().top - sbRect.top;
+    const h=Math.max(120, Math.round(sb.clientHeight - listTop - legend.offsetHeight));
+    list.style.flex='none';
+    list.style.height=h+'px';
+}
+window.addEventListener('resize', fitList);
+window.addEventListener('orientationchange', ()=>setTimeout(fitList,250));
+if(window.visualViewport) window.visualViewport.addEventListener('resize', fitList);
+document.getElementById('top-panel').addEventListener('transitionend', fitList);
+setInterval(fitList, 1000);
+setTimeout(fitList, 50);
+
+/* ---------- เลื่อนรายการด้วยนิ้ว (เขียนเอง ใช้ได้แม้เบราว์เซอร์ไม่เลื่อนให้) ---------- */
+(function(){
+    const list=document.getElementById('list');
+    let startY=0, startTop=0, lastY=0, lastT=0, vel=0, dragging=false, moved=false, raf=null;
+
+    list.addEventListener('touchstart', e=>{
+        cancelAnimationFrame(raf);
+        const t=e.touches[0];
+        startY=lastY=t.clientY; startTop=list.scrollTop; lastT=e.timeStamp;
+        vel=0; dragging=true; moved=false;
+    }, {passive:true});
+
+    list.addEventListener('touchmove', e=>{
+        if(!dragging) return;
+        const t=e.touches[0];
+        const dy=startY - t.clientY;
+        if(Math.abs(dy)>6) moved=true;
+        e.preventDefault();                 // ยึดการเลื่อนเอง ไม่ให้เบราว์เซอร์/แผนที่แย่ง
+        list.scrollTop = startTop + dy;
+        const dt=e.timeStamp - lastT;
+        if(dt>0) vel=(lastY - t.clientY)/dt;
+        lastY=t.clientY; lastT=e.timeStamp;
+    }, {passive:false});
+
+    function end(){
+        dragging=false;
+        if(!moved) return;
+        let v=vel*16;                       // ความเร็วต่อเฟรม สำหรับเลื่อนต่อ (momentum)
+        const step=()=>{
+            if(Math.abs(v)<0.5) return;
+            const before=list.scrollTop;
+            list.scrollTop += v; v*=0.95;
+            if(list.scrollTop===before) return;
+            raf=requestAnimationFrame(step);
+        };
+        step();
+    }
+    list.addEventListener('touchend', end, {passive:true});
+    list.addEventListener('touchcancel', end, {passive:true});
+
+    // ถ้าเพิ่งลากนิ้ว ไม่ให้นับเป็นการแตะรายการ
+    list.addEventListener('click', e=>{
+        if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; }
+    }, true);
+})();
 
 // Toggle Top Panel
 const topPanel = document.getElementById('top-panel');
@@ -846,6 +905,7 @@ toggleTopBtn.addEventListener('click', () => {
         topPanel.classList.add('hidden');
         toggleTopBtn.textContent = '▼ แสดงข้อมูลส่วนบน';
     }
+    setTimeout(fitList, 350);
 });
 
 document.getElementById('q').addEventListener('input',e=>applyFilter(e.target.value));
